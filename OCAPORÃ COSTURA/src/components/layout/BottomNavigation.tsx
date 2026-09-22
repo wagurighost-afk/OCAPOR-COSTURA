@@ -1,12 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Package, Scissors, Wrench } from 'lucide-react';
+import { BarChart3, ClipboardList, Home, Package, Scissors, Wrench } from 'lucide-react';
 import { NAV_ITEMS } from '@/constants';
 
 const iconMap = {
   Home,
+  ClipboardList,
   Package,
   Scissors,
   Wrench,
+  BarChart3,
 };
 
 export function BottomNavigation() {

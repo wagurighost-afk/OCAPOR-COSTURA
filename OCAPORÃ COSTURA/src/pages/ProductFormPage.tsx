@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/EmptyState';
 import { validateProductForm } from '@/utils/stock';
 import { GENDER_OPTIONS } from '@/constants';
-import type { ProductFormData } from '@/types';
+import type { ProductFormData, CosturaDepartment, InventoryItemType } from '@/types';
 
 const initialForm: ProductFormData = {
   name: '',
@@ -25,7 +25,30 @@ const initialForm: ProductFormData = {
   idealStock: 0,
   maximumStock: 0,
   notes: '',
+  department: undefined,
+  stockItemType: 'PECA_PRONTA',
 };
+
+const departments: { value: CosturaDepartment; label: string }[] = [
+  { value: 'COZINHA', label: 'Cozinha' },
+  { value: 'SERVICO_GERAL', label: 'Serviço Geral' },
+  { value: 'RECREACAO', label: 'Recreação' },
+  { value: 'MEDRI', label: 'Medri' },
+  { value: 'RECEPCAO', label: 'Recepção' },
+  { value: 'GARCOM', label: 'Garçom' },
+  { value: 'GARCONETE', label: 'Garçonete' },
+  { value: 'JARDIM', label: 'Jardim' },
+  { value: 'SUPERVISORES', label: 'Supervisoras' },
+  { value: 'LAVANDERIA', label: 'Lavanderia' },
+  { value: 'OUTRO', label: 'Outro' },
+];
+
+const stockTypes: { value: InventoryItemType; label: string }[] = [
+  { value: 'PECA_PRONTA', label: 'Peça pronta' },
+  { value: 'CORTE', label: 'Corte' },
+  { value: 'TECIDO', label: 'Tecido' },
+  { value: 'AVIAMENTO', label: 'Aviamento' },
+];
 
 export function ProductFormPage() {
   const navigate = useNavigate();
@@ -112,6 +135,11 @@ export function ProductFormPage() {
             placeholder="Selecione..."
             options={categories.map((c) => ({ value: c.id, label: c.name }))}
           />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select label="Setor" value={form.department ?? ''} onChange={(e) => updateField('department', (e.target.value || undefined) as CosturaDepartment | undefined)} options={departments} placeholder="Não informado" />
+          <Select label="Tipo de estoque" value={form.stockItemType ?? 'PECA_PRONTA'} onChange={(e) => updateField('stockItemType', e.target.value as InventoryItemType)} options={stockTypes} />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

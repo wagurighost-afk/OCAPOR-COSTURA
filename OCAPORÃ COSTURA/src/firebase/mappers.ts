@@ -1,11 +1,13 @@
 import {
   Timestamp,
   type DocumentData,
+  type DocumentSnapshot,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import type {
   AppUser,
   Category,
+  CosturaRequest,
   Product,
   ProductionOrder,
   Repair,
@@ -26,23 +28,33 @@ export function dateToTimestamp(date: Date): Timestamp {
   return Timestamp.fromDate(date);
 }
 
-export function mapUserDoc(doc: QueryDocumentSnapshot<DocumentData>): AppUser {
-  const data = doc.data();
+type FirestoreDoc = DocumentSnapshot<DocumentData> | QueryDocumentSnapshot<DocumentData>;
+
+export function mapUserDoc(doc: FirestoreDoc): AppUser {
+  const data = doc.data() ?? {};
   return {
     id: doc.id,
     name: data.name ?? '',
     email: data.email ?? '',
-    role: data.role ?? 'COSTURA',
+    role: data.role ?? 'COSTURA_GESTAO',
     active: data.active ?? true,
     createdAt: timestampToDate(data.createdAt),
     updatedAt: timestampToDate(data.updatedAt),
   };
 }
 
+function resolveStockItemType(data: Record<string, unknown>): Product['stockItemType'] {
+  const value = data.stockItemType ?? data.stockType ?? 'PECA_PRONTA';
+  if (value === 'PECA_PRONTA' || value === 'CORTE' || value === 'TECIDO' || value === 'AVIAMENTO') {
+    return value;
+  }
+  return 'PECA_PRONTA';
+}
+
 export function mapCategoryDoc(
-  doc: QueryDocumentSnapshot<DocumentData>,
+  doc: FirestoreDoc,
 ): Category {
-  const data = doc.data();
+  const data = doc.data() ?? {};
   return {
     id: doc.id,
     name: data.name ?? '',
@@ -54,14 +66,19 @@ export function mapCategoryDoc(
 }
 
 export function mapProductDoc(
-  doc: QueryDocumentSnapshot<DocumentData>,
+  doc: FirestoreDoc,
 ): Product {
-  const data = doc.data();
+  const data = doc.data() ?? {};
+  const stockItemType = resolveStockItemType(data);
   return {
     id: doc.id,
+    baseProductId: typeof data.baseProductId === 'string' ? data.baseProductId : undefined,
     name: data.name ?? '',
     code: data.code ?? '',
     categoryId: data.categoryId ?? '',
+    department: data.department,
+    stockType: stockItemType,
+    stockItemType,
     subcategory: data.subcategory,
     model: data.model,
     gender: data.gender,
@@ -82,13 +99,19 @@ export function mapProductDoc(
 }
 
 export function mapProductionOrderDoc(
-  doc: QueryDocumentSnapshot<DocumentData>,
+  doc: FirestoreDoc,
 ): ProductionOrder {
-  const data = doc.data();
+  const data = doc.data() ?? {};
   return {
     id: doc.id,
+    requestId: data.requestId,
     productId: data.productId ?? '',
+    productionType: data.productionType === 'ESPECIAL' ? 'ESPECIAL' : 'NORMAL',
+    department: data.department,
+    cutProductId: typeof data.cutProductId === 'string' ? data.cutProductId : undefined,
+    readyProductId: typeof data.readyProductId === 'string' ? data.readyProductId : undefined,
     requestedQuantity: data.requestedQuantity ?? 0,
+    cutQuantity: data.cutQuantity ?? 0,
     producedQuantity: data.producedQuantity ?? 0,
     remainingQuantity: data.remainingQuantity ?? 0,
     priority: data.priority ?? 'NORMAL',
@@ -105,15 +128,22 @@ export function mapProductionOrderDoc(
   };
 }
 
-export function mapRepairDoc(doc: QueryDocumentSnapshot<DocumentData>): Repair {
-  const data = doc.data();
+export function mapRepairDoc(doc: FirestoreDoc): Repair {
+  const data = doc.data() ?? {};
   return {
     id: doc.id,
-    productId: data.productId ?? '',
+    requestId: data.requestId,
+    productId: data.productId ?? undefined,
+    itemName: data.itemName ?? data.name ?? '',
+    department: data.department,
+    location: data.location,
     quantity: data.quantity ?? 0,
     problem: data.problem ?? '',
-    status: data.status ?? 'AGUARDANDO',
+    photoUrl: data.photoUrl,
+    priority: data.priority ?? 'NORMAL',
+    requester: data.requester,
     responsible: data.responsible,
+    status: data.status ?? 'AGUARDANDO',
     entryDate: timestampToDate(data.entryDate),
     startedDate: data.startedDate
       ? timestampToDate(data.startedDate)
@@ -122,18 +152,26 @@ export function mapRepairDoc(doc: QueryDocumentSnapshot<DocumentData>): Repair {
       ? timestampToDate(data.completedDate)
       : undefined,
     notes: data.notes,
+    statusHistory: Array.isArray(data.statusHistory)
+      ? data.statusHistory.map((entry: any) => ({
+          ...entry,
+          changedAt: entry?.changedAt ? timestampToDate(entry.changedAt) : new Date(),
+        }))
+      : undefined,
     createdAt: timestampToDate(data.createdAt),
     updatedAt: timestampToDate(data.updatedAt),
   };
 }
 
 export function mapReleaseDoc(
-  doc: QueryDocumentSnapshot<DocumentData>,
+  doc: FirestoreDoc,
 ): Release {
-  const data = doc.data();
+  const data = doc.data() ?? {};
+  const stockItemType = resolveStockItemType(data);
   return {
     id: doc.id,
     productId: data.productId ?? '',
+    stockItemType,
     quantity: data.quantity ?? 0,
     requester: data.requester ?? '',
     department: data.department ?? '',
@@ -144,14 +182,19 @@ export function mapReleaseDoc(
 }
 
 export function mapStockMovementDoc(
-  doc: QueryDocumentSnapshot<DocumentData>,
+  doc: FirestoreDoc,
 ): StockMovement {
-  const data = doc.data();
+  const data = doc.data() ?? {};
+  const stockItemType = resolveStockItemType(data);
   return {
     id: doc.id,
     productId: data.productId ?? '',
+    stockItemType,
+    department: data.department,
+    sizeOrVariation: data.sizeOrVariation,
     type: data.type,
     quantity: data.quantity ?? 0,
+    delta: typeof data.delta === 'number' ? data.delta : undefined,
     previousStock: data.previousStock ?? 0,
     newStock: data.newStock ?? 0,
     userId: data.userId ?? '',
@@ -161,11 +204,74 @@ export function mapStockMovementDoc(
   };
 }
 
-export function productToFirestore(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) {
+export function mapRequestDoc(doc: FirestoreDoc): CosturaRequest {
+  const data = doc.data() ?? {};
+  const statusHistory = Array.isArray(data.statusHistory)
+    ? data.statusHistory.map((entry: any) => ({
+        ...entry,
+        changedAt: entry?.changedAt ? timestampToDate(entry.changedAt) : new Date(),
+      }))
+    : [];
+
   return {
+    id: doc.id,
+    requestType: data.requestType ?? 'OUTRO',
+    department: data.department,
+    itemName: data.itemName ?? '',
+    productId: data.productId,
+    location: data.location,
+    problem: data.problem,
+    photoUrl: data.photoUrl,
+    size: data.size,
+    quantity: data.quantity ?? 0,
+    requester: data.requester,
+    requestedBy: data.requestedBy ?? data.requester,
+    deadline: data.deadline ? timestampToDate(data.deadline) : undefined,
+    priority: data.priority ?? 'NORMAL',
+    status: data.status ?? 'PENDENTE',
+    previousStatus: data.previousStatus,
+    observations: data.observations,
+    statusHistory,
+    createdAt: timestampToDate(data.createdAt),
+    updatedAt: timestampToDate(data.updatedAt),
+  };
+}
+
+export function requestToFirestore(request: Omit<CosturaRequest, 'id' | 'createdAt' | 'updatedAt'>) {
+  return {
+    requestType: request.requestType,
+    department: request.department ?? null,
+    itemName: request.itemName,
+    productId: request.productId ?? null,
+    location: request.location ?? null,
+    problem: request.problem ?? null,
+    photoUrl: request.photoUrl ?? null,
+    size: request.size ?? null,
+    quantity: request.quantity,
+    requester: request.requester ?? null,
+    requestedBy: request.requestedBy ?? request.requester ?? null,
+    deadline: request.deadline ? dateToTimestamp(request.deadline) : null,
+    priority: request.priority,
+    status: request.status,
+    previousStatus: request.previousStatus ?? null,
+    observations: request.observations ?? null,
+    statusHistory: (request.statusHistory ?? []).map((entry) => ({
+      ...entry,
+      changedAt: dateToTimestamp(entry.changedAt),
+    })),
+  };
+}
+
+export function productToFirestore(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) {
+  const stockItemType = product.stockItemType ?? product.stockType ?? 'PECA_PRONTA';
+  return {
+    baseProductId: product.baseProductId ?? null,
     name: product.name,
     code: product.code,
     categoryId: product.categoryId,
+    department: product.department ?? null,
+    stockItemType,
+    stockType: stockItemType,
     subcategory: product.subcategory ?? null,
     model: product.model ?? null,
     gender: product.gender ?? null,

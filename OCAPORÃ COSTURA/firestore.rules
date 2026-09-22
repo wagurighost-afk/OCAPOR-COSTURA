@@ -18,47 +18,68 @@ service cloud.firestore {
       return isActiveUser() && getUserData().role == 'ADMIN';
     }
 
+    function isCosturaGestao() {
+      return isActiveUser() && getUserData().role == 'COSTURA_GESTAO';
+    }
+
+    function isCosturaOperacional() {
+      return isActiveUser() && getUserData().role == 'COSTURA_OPERACIONAL';
+    }
+
     function isCostura() {
-      return isActiveUser() && getUserData().role == 'COSTURA';
+      return isActiveUser() && (
+        getUserData().role == 'COSTURA_GESTAO' ||
+        getUserData().role == 'COSTURA_OPERACIONAL'
+      );
+    }
+
+    function canManageCosturaOperations() {
+      return isAdmin() || isCosturaGestao() || isCosturaOperacional();
     }
 
     match /users/{userId} {
-      allow read: if isActiveUser() && (request.auth.uid == userId || isAdmin());
+      allow read: if isActiveUser() && (request.auth.uid == userId || isAdmin() || isCosturaGestao());
       allow create, update, delete: if isAdmin();
     }
 
     match /categories/{categoryId} {
       allow read: if isActiveUser();
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if isAdmin() || isCosturaGestao();
     }
 
     match /products/{productId} {
       allow read: if isActiveUser();
-      allow create, update: if isAdmin();
+      allow create, update: if canManageCosturaOperations();
+      allow delete: if false;
+    }
+
+    match /requests/{requestId} {
+      allow read: if isActiveUser();
+      allow create, update: if canManageCosturaOperations();
       allow delete: if false;
     }
 
     match /productionOrders/{orderId} {
       allow read: if isActiveUser();
-      allow create, update: if isActiveUser();
+      allow create, update: if canManageCosturaOperations();
       allow delete: if false;
     }
 
     match /repairs/{repairId} {
       allow read: if isActiveUser();
-      allow create, update: if isActiveUser();
+      allow create, update: if canManageCosturaOperations();
       allow delete: if false;
     }
 
     match /releases/{releaseId} {
       allow read: if isActiveUser();
-      allow create: if isActiveUser();
+      allow create: if canManageCosturaOperations();
       allow update, delete: if false;
     }
 
     match /stockMovements/{movementId} {
       allow read: if isActiveUser();
-      allow create: if isActiveUser();
+      allow create: if canManageCosturaOperations();
       allow update, delete: if false;
     }
   }

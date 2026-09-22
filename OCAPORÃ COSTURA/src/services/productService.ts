@@ -115,7 +115,6 @@ export async function createProduct(data: ProductFormData): Promise<Product> {
     return createDemoProduct(data);
   }
 
-  const now = new Date();
   const productData = {
     ...productToFirestore({
       ...data,

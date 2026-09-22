@@ -41,7 +41,9 @@ export function MetricCard({
 interface StockCardProps {
   title: string;
   subtitle?: string;
+  department?: string;
   available: number;
+  quantityLabel?: string;
   status: ReactNode;
   footer?: ReactNode;
   onClick?: () => void;
@@ -50,7 +52,9 @@ interface StockCardProps {
 export function StockCard({
   title,
   subtitle,
+  department,
   available,
+  quantityLabel = 'disponíveis',
   status,
   footer,
   onClick,
@@ -70,6 +74,7 @@ export function StockCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
+          {department && <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">{department}</p>}
           <h3 className="truncate text-base font-semibold text-slate-900">{title}</h3>
           {subtitle && (
             <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>
@@ -79,7 +84,7 @@ export function StockCard({
       </div>
       <div className="mt-3 flex items-baseline gap-2">
         <span className="text-3xl font-bold text-brand-700">{available}</span>
-        <span className="text-sm text-slate-500">disponíveis</span>
+        <span className="text-sm text-slate-500">{quantityLabel}</span>
       </div>
       {footer && <div className="mt-3 border-t border-slate-100 pt-3">{footer}</div>}
     </Component>
@@ -90,6 +95,7 @@ export function ProductCard({
   name,
   size,
   available,
+  quantityLabel,
   status,
   inProduction,
   inRepair,
@@ -98,6 +104,7 @@ export function ProductCard({
   name: string;
   size: string;
   available: number;
+  quantityLabel?: string;
   status: ReactNode;
   inProduction?: number;
   inRepair?: number;
@@ -108,6 +115,7 @@ export function ProductCard({
       title={name}
       subtitle={`Tamanho: ${size}`}
       available={available}
+      quantityLabel={quantityLabel}
       status={status}
       onClick={onClick}
       footer={

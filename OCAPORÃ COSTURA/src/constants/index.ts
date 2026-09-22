@@ -7,6 +7,7 @@ export const COLLECTIONS = {
   USERS: 'users',
   CATEGORIES: 'categories',
   PRODUCTS: 'products',
+  REQUESTS: 'requests',
   PRODUCTION_ORDERS: 'productionOrders',
   REPAIRS: 'repairs',
   RELEASES: 'releases',
@@ -44,9 +45,11 @@ export const GENDER_OPTIONS = [
 
 export const NAV_ITEMS = [
   { path: '/', label: 'Início', icon: 'Home' },
+  { path: '/solicitacoes', label: 'Solicitações', icon: 'ClipboardList' },
   { path: '/estoque', label: 'Estoque', icon: 'Package' },
   { path: '/producao', label: 'Produção', icon: 'Scissors' },
   { path: '/consertos', label: 'Consertos', icon: 'Wrench' },
+  { path: '/relatorios', label: 'Relatórios', icon: 'BarChart3' },
 ] as const;
 
 export const DEFAULT_CATEGORIES = [

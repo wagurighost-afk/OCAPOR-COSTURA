@@ -1,18 +1,29 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Package, Scissors, Wrench, Settings, BarChart3, History, Users } from 'lucide-react';
+import {
+  BarChart3,
+  ClipboardList,
+  History,
+  Home,
+  Package,
+  Scissors,
+  Settings,
+  Users,
+  Wrench,
+} from 'lucide-react';
 import { APP_NAME, APP_SUBTITLE, NAV_ITEMS } from '@/constants';
 import { useAuth } from '@/contexts/AuthContext';
 
 const iconMap = {
   Home,
+  ClipboardList,
   Package,
   Scissors,
   Wrench,
+  BarChart3,
 };
 
 const secondaryItems = [
   { path: '/historico', label: 'Histórico', icon: History },
-  { path: '/relatorios', label: 'Relatórios', icon: BarChart3 },
   { path: '/configuracoes', label: 'Configurações', icon: Settings },
   { path: '/usuarios', label: 'Usuários', icon: Users, adminOnly: true },
 ];

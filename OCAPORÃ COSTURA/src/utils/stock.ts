@@ -1,4 +1,36 @@
-import type { Product, StockStatus } from '@/types';
+import type { InventoryItemType, Product, StockStatus } from '@/types';
+
+export function getStockItemType(
+  product?: Pick<Product, 'stockItemType' | 'stockType'> | null,
+): InventoryItemType {
+  const value = product?.stockItemType ?? product?.stockType ?? 'PECA_PRONTA';
+  if (
+    value === 'PECA_PRONTA' ||
+    value === 'CORTE' ||
+    value === 'TECIDO' ||
+    value === 'AVIAMENTO'
+  ) {
+    return value;
+  }
+
+  return 'PECA_PRONTA';
+}
+
+export function isReadyItem(product: Product): boolean {
+  return getStockItemType(product) === 'PECA_PRONTA';
+}
+
+export function isCutItem(product: Product): boolean {
+  return getStockItemType(product) === 'CORTE';
+}
+
+export function isFabricItem(product: Product): boolean {
+  return getStockItemType(product) === 'TECIDO';
+}
+
+export function isSupplyItem(product: Product): boolean {
+  return getStockItemType(product) === 'AVIAMENTO';
+}
 
 /**
  * Estoque disponível para liberação.
@@ -36,10 +68,11 @@ export function getStockStatus(product: Product): StockStatus {
 }
 
 export function canRelease(product: Product, quantity: number): boolean {
-  return quantity > 0 && quantity <= getAvailableStock(product);
+  return isReadyItem(product) && quantity > 0 && quantity <= getAvailableStock(product);
 }
 
 export function getReleaseShortage(product: Product, requested: number): number {
+  if (!isReadyItem(product)) return requested;
   const available = getAvailableStock(product);
   return Math.max(0, requested - available);
 }
